@@ -6,26 +6,7 @@
     </div>
 
     <div class="doctors-container">
-      <!-- 加载中 -->
-      <div v-if="loading" class="state-box">
-        <a-spin size="large" tip="加载中..." />
-      </div>
-
-      <!-- 请求失败 -->
-      <div v-else-if="error" class="state-box">
-        <a-result
-          status="error"
-          title="数据加载失败"
-          :sub-title="error"
-        >
-          <template #extra>
-            <a-button type="primary" @click="fetchDoctors">重新加载</a-button>
-          </template>
-        </a-result>
-      </div>
-
-      <!-- 医生列表 -->
-      <div v-else class="doctors-grid">
+      <div class="doctors-grid">
         <a-card
           v-for="doctor in allDoctors"
           :key="doctor.id"
@@ -67,70 +48,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { store, Doctor } from '../store';
 
-// ── 类型定义 ──────────────────────────────────────────────────
-interface Doctor {
-  id: string;
-  username: string;
-  name: string;
-  title: string;
-  department: string;
-  avatar: string;
-  experience: string;
-  specialties: string[];
-  isActive: boolean;
-}
-
-interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
-
-// ── 常量 ──────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
-
-// ── 状态 ──────────────────────────────────────────────────────
 const router = useRouter();
-const allDoctors = ref<Doctor[]>([]);
-const loading = ref(false);
-const error = ref('');
 
-// ── 数据获取 ──────────────────────────────────────────────────
-async function fetchDoctors() {
-  loading.value = true;
-  error.value = '';
+const allDoctors = computed(() => store.state.doctors);
 
-  try {
-    const res = await fetch(`${API_BASE}/doctors`);
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}：${res.statusText}`);
-    }
-
-    const json: ApiResponse<Doctor[]> = await res.json();
-
-    if (json.code !== 200) {
-      throw new Error(json.message ?? '接口返回异常');
-    }
-
-    allDoctors.value = json.data;
-  } catch (err: unknown) {
-    error.value = err instanceof Error ? err.message : '未知错误，请稍后重试';
-  } finally {
-    loading.value = false;
-  }
-}
-
-// ── 导航 ──────────────────────────────────────────────────────
-function goToConsultation(doctor: Doctor) {
+const goToConsultation = (doctor: Doctor) => {
   router.push(`/consultation/${doctor.username}`);
-}
-
-// ── 生命周期 ──────────────────────────────────────────────────
-onMounted(fetchDoctors);
+};
 </script>
 
 <style scoped>
@@ -164,14 +92,6 @@ onMounted(fetchDoctors);
   max-width: 1200px;
   margin: 0 auto;
   padding: 48px 24px;
-}
-
-/* 加载中 / 错误 居中占位 */
-.state-box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 320px;
 }
 
 .doctors-grid {
